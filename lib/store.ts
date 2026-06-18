@@ -43,7 +43,7 @@ interface ChatStore {
   view: "chat" | "library" | "agents" | "templates" | "settings";
   searchOpen: boolean;
 
-  setCurrentSessionId: (id: string) => void;
+  setCurrentSessionId: (id: string | null) => void;
   setSessions: (sessions: Session[]) => void;
   setCurrentMessages: (messages: Message[]) => void;
   setSelectedModel: (model: ModelConfig) => void;
@@ -72,7 +72,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   view: "chat",
   searchOpen: false,
 
-  setCurrentSessionId: (id: string) =>
+  setCurrentSessionId: (id: string | null) =>
     set({ currentSessionId: id }),
   setSessions: (sessions: Session[]) => set({ sessions }),
   setCurrentMessages: (messages: Message[]) =>

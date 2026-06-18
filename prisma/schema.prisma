@@ -1,4 +1,4 @@
-// Auth.js / NextAuth models + DevAgent chat persistence
+// Auth.js / NextAuth models + DevAgent chat persistence + user settings
 
 generator client {
   provider = "prisma-client-js"
@@ -11,16 +11,70 @@ datasource db {
 
 // --- NextAuth / Auth.js (required by @auth/prisma-adapter) ---
 
+enum Theme {
+  SYSTEM
+  DARK
+  LIGHT
+}
+
 model User {
-  id            String        @id @default(cuid())
+  id            String           @id @default(cuid())
   name          String?
-  email         String?       @unique
+  email         String?          @unique
   emailVerified DateTime?
   image         String?
-  password      String?       // hashed, null for OAuth-only users
+  password      String?          // hashed, null for OAuth-only users
   accounts      Account[]
   sessions      Session[]
   chatSessions  ChatSession[]
+  profile       UserProfile?
+  preferences   UserPreferences?
+  appearance    UserAppearance?
+  dataPrivacy   UserDataPrivacy?
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  bio       String?  @db.Text
+  language  String   @default("English")
+  timezone  String   @default("(GMT+05:30) Asia/Kolkata")
+  avatarUrl String?
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPreferences {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  defaultModel     String   @default("claude-sonnet-4-6")
+  defaultMode      String   @default("chat")
+  sendOnEnter      Boolean  @default(true)
+  codeHighlighting Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserAppearance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  theme     Theme    @default(SYSTEM)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserDataPrivacy {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  saveHistory       Boolean  @default(true)
+  analyticsEnabled  Boolean  @default(true)
+  dataRetentionDays Int      @default(90)
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {

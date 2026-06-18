@@ -23,6 +23,7 @@ function ChatPageContent() {
     setSessions,
     setCurrentMessages,
     setCurrentSessionId,
+    setView,
     currentSessionId,
     view,
   } = useChatStore();
@@ -32,14 +33,19 @@ function ChatPageContent() {
     if (status === "unauthenticated") {
       router.push("/login");
     } else if (status === "authenticated" && !initialized) {
-      // Only set a default model if none is selected yet
-      if (!useChatStore.getState().selectedModel) {
-        setSelectedModel(MODELS[1]);
-      }
-
       (async () => {
         try {
-          const createMode = useChatStore.getState().mode;
+          if (!useChatStore.getState().selectedModel) {
+            const prefRes = await fetch("/api/user/preferences");
+            let preferredModelId: string | undefined;
+            if (prefRes.ok) {
+              const prefData = (await prefRes.json()) as { defaultModel?: string };
+              preferredModelId = prefData.defaultModel;
+            }
+            const preferred = MODELS.find((m) => m.id === preferredModelId);
+            setSelectedModel(preferred ?? MODELS[1] ?? MODELS[0]);
+          }
+
           const res = await fetch("/api/sessions");
           if (!res.ok) {
             console.error("Failed to load sessions", await res.text());
@@ -47,26 +53,12 @@ function ChatPageContent() {
             return;
           }
           const data = (await res.json()) as { sessions?: Session[] };
-          let list = Array.isArray(data.sessions) ? data.sessions : [];
-
-          if (list.length === 0) {
-            const create = await fetch("/api/sessions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ title: "New chat", mode: createMode }),
-            });
-            if (create.ok) {
-              const created = (await create.json()) as { session?: Session };
-              if (created.session) {
-                list = [created.session];
-              }
-            }
-          }
+          const list = Array.isArray(data.sessions) ? data.sessions : [];
 
           setSessions(list);
-          if (list[0]?.id) {
-            setCurrentSessionId(list[0].id);
-          }
+          setCurrentSessionId(null);
+          setCurrentMessages([]);
+          setView("chat");
         } catch (e) {
           console.error(e);
         } finally {
@@ -80,11 +72,13 @@ function ChatPageContent() {
     initialized,
     setSelectedModel,
     setSessions,
+    setCurrentMessages,
     setCurrentSessionId,
+    setView,
   ]);
 
   useEffect(() => {
-    if (status !== "authenticated" || !currentSessionId) return;
+    if (status !== "authenticated" || !initialized || !currentSessionId) return;
 
     let cancelled = false;
     (async () => {
@@ -97,7 +91,7 @@ function ChatPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [currentSessionId, status, setCurrentMessages]);
+  }, [currentSessionId, initialized, status, setCurrentMessages]);
 
   if (status === "loading" || (status === "authenticated" && !initialized)) {
     return (

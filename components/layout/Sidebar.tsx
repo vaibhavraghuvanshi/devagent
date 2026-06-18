@@ -5,6 +5,12 @@ import { Plus, Trash2, Search, BookOpen, Bot, LayoutTemplate, Sparkles, ChevronU
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <p className="px-3 pt-4 pb-1.5 text-[10px] font-semibold text-[#767679] uppercase tracking-widest">{label}</p>
+  );
+}
+
 function groupSessions(sessions: Session[]) {
   const now = new Date();
   const today: Session[] = [], yesterday: Session[] = [], earlier: Session[] = [];
@@ -38,11 +44,18 @@ export function Sidebar() {
     } catch (e) { console.error(e); }
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    try {
+      const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+      if (!res.ok) return;
+    } catch (error) {
+      console.error("Failed to delete chat", error);
+      return;
+    }
     const updated = sessions.filter((s) => s.id !== id);
     setSessions(updated);
-    if (currentSessionId === id) { setCurrentSessionId(updated[0]?.id ?? ""); setCurrentMessages([]); }
+    if (currentSessionId === id) { setCurrentSessionId(null); setCurrentMessages([]); setView("chat"); }
   };
 
   const NAV_ITEMS = [
@@ -67,10 +80,6 @@ export function Sidebar() {
         <Trash2 className="w-3.5 h-3.5" />
       </button>
     </div>
-  );
-
-  const SectionLabel = ({ label }: { label: string }) => (
-    <p className="px-3 pt-4 pb-1.5 text-[10px] font-semibold text-[#767679] uppercase tracking-widest">{label}</p>
   );
 
   return (

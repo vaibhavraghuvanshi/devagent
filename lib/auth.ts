@@ -52,8 +52,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // secret is inherited from authConfig — do not override here
   callbacks: {
+    // authorized is handled by the middleware (auth.config.ts) — keep jwt/session here only
     async jwt({ token, user }) {
       if (user) token.id = user.id;
       return token;
