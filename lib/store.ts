@@ -42,6 +42,13 @@ interface ChatStore {
   isLoading: boolean;
   view: "chat" | "library" | "agents" | "templates" | "settings";
   searchOpen: boolean;
+  sendOnEnter: boolean;
+  codeHighlighting: boolean;
+  streamResponses: boolean;
+  verboseToolLogs: boolean;
+  safeMode: boolean;
+  developerMode: boolean;
+  betaFeatures: boolean;
 
   setCurrentSessionId: (id: string | null) => void;
   setSessions: (sessions: Session[]) => void;
@@ -50,6 +57,13 @@ interface ChatStore {
   setMode: (mode: "chat" | "agent") => void;
   setView: (view: "chat" | "library" | "agents" | "templates" | "settings") => void;
   setSearchOpen: (open: boolean) => void;
+  setSendOnEnter: (enabled: boolean) => void;
+  setCodeHighlighting: (enabled: boolean) => void;
+  setStreamResponses: (enabled: boolean) => void;
+  setVerboseToolLogs: (enabled: boolean) => void;
+  setSafeMode: (enabled: boolean) => void;
+  setDeveloperMode: (enabled: boolean) => void;
+  setBetaFeatures: (enabled: boolean) => void;
   addContextFile: (path: string) => void;
   removeContextFile: (path: string) => void;
   setIsLoading: (loading: boolean) => void;
@@ -71,6 +85,13 @@ export const useChatStore = create<ChatStore>((set) => ({
   isLoading: false,
   view: "chat",
   searchOpen: false,
+  sendOnEnter: true,
+  codeHighlighting: true,
+  streamResponses: true,
+  verboseToolLogs: false,
+  safeMode: true,
+  developerMode: false,
+  betaFeatures: false,
 
   setCurrentSessionId: (id: string | null) =>
     set({ currentSessionId: id }),
@@ -80,8 +101,15 @@ export const useChatStore = create<ChatStore>((set) => ({
   setSelectedModel: (model: ModelConfig) =>
     set({ selectedModel: model }),
   setMode: (mode: "chat" | "agent") => set({ mode }),
-  setView: (view: "chat" | "library") => set({ view }),
+  setView: (view: "chat" | "library" | "agents" | "templates" | "settings") => set({ view }),
   setSearchOpen: (open: boolean) => set({ searchOpen: open }),
+  setSendOnEnter: (enabled: boolean) => set({ sendOnEnter: enabled }),
+  setCodeHighlighting: (enabled: boolean) => set({ codeHighlighting: enabled }),
+  setStreamResponses: (enabled: boolean) => set({ streamResponses: enabled }),
+  setVerboseToolLogs: (enabled: boolean) => set({ verboseToolLogs: enabled }),
+  setSafeMode: (enabled: boolean) => set({ safeMode: enabled }),
+  setDeveloperMode: (enabled: boolean) => set({ developerMode: enabled }),
+  setBetaFeatures: (enabled: boolean) => set({ betaFeatures: enabled }),
   addContextFile: (path: string) =>
     set((state) => ({
       contextFiles: [

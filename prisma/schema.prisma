@@ -31,6 +31,11 @@ model User {
   preferences   UserPreferences?
   appearance    UserAppearance?
   dataPrivacy   UserDataPrivacy?
+  security      UserSecurity?
+  integrations  UserIntegrations?
+  billing       UserBilling?
+  notifications UserNotifications?
+  advanced      UserAdvanced?
 }
 
 model UserProfile {
@@ -73,6 +78,74 @@ model UserDataPrivacy {
   analyticsEnabled  Boolean  @default(true)
   dataRetentionDays Int      @default(90)
   updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSecurity {
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  twoFactorEnabled          Boolean  @default(false)
+  loginAlerts               Boolean  @default(true)
+  suspiciousSignInDetection Boolean  @default(true)
+  updatedAt                 DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserIntegrations {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  githubConnected     Boolean  @default(false)
+  slackConnected      Boolean  @default(false)
+  jiraConnected       Boolean  @default(false)
+  linearConnected     Boolean  @default(false)
+  webhookUrl          String?
+  syncIntervalMinutes Int      @default(15)
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserBilling {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  plan           String   @default("free")
+  billingCycle   String   @default("monthly")
+  autoRenew      Boolean  @default(false)
+  usageAlerts    Boolean  @default(true)
+  spendLimitUsd  Int      @default(0)
+  invoiceEmail   String?
+  taxId          String?
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserNotifications {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  emailNotifications Boolean  @default(true)
+  pushNotifications Boolean  @default(false)
+  productUpdates    Boolean  @default(true)
+  securityAlerts    Boolean  @default(true)
+  weeklySummary     Boolean  @default(true)
+  quietHoursStart   String   @default("22:00")
+  quietHoursEnd     String   @default("07:00")
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserAdvanced {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  developerMode    Boolean  @default(false)
+  betaFeatures     Boolean  @default(false)
+  streamResponses  Boolean  @default(true)
+  verboseToolLogs  Boolean  @default(false)
+  safeMode         Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { Loader2, Eye, EyeOff, Sparkles } from "lucide-react";
 
 type Mode = "signin" | "signup";
@@ -23,7 +22,6 @@ const GitHubIcon = () => (
 );
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [loading, setLoading] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -49,7 +47,7 @@ export default function LoginPage() {
     if (!email || !password) { setError("Email and password are required"); return; }
     setLoading("credentials"); setError("");
     const result = await signIn("credentials", { email, password, redirect: false });
-    if (result?.ok) { router.push("/"); router.refresh(); }
+    if (result?.ok) { window.location.href = "/"; }
     else { setError("Invalid email or password."); setLoading(null); }
   };
 
@@ -67,7 +65,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Registration failed"); setLoading(null); return; }
       const result = await signIn("credentials", { email, password, redirect: false });
-      if (result?.ok) { router.push("/"); router.refresh(); }
+      if (result?.ok) { window.location.href = "/"; }
       else { setSuccess("Account created! Please sign in."); switchMode("signin"); }
     } catch { setError("Something went wrong."); setLoading(null); }
   };

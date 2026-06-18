@@ -20,6 +20,14 @@ function ChatPageContent() {
   const { status } = useSession();
   const {
     setSelectedModel,
+    setMode,
+    setSendOnEnter,
+    setCodeHighlighting,
+    setStreamResponses,
+    setVerboseToolLogs,
+    setSafeMode,
+    setDeveloperMode,
+    setBetaFeatures,
     setSessions,
     setCurrentMessages,
     setCurrentSessionId,
@@ -35,15 +43,41 @@ function ChatPageContent() {
     } else if (status === "authenticated" && !initialized) {
       (async () => {
         try {
+          const prefRes = await fetch("/api/user/preferences");
+          let preferredModelId: string | undefined;
+          let preferredMode: "chat" | "agent" | undefined;
+          let sendOnEnter = true;
+          let codeHighlighting = true;
+          if (prefRes.ok) {
+            const prefData = (await prefRes.json()) as { defaultModel?: string; defaultMode?: string; sendOnEnter?: boolean; codeHighlighting?: boolean };
+            preferredModelId = prefData.defaultModel;
+            preferredMode = prefData.defaultMode === "agent" ? "agent" : "chat";
+            sendOnEnter = prefData.sendOnEnter ?? true;
+            codeHighlighting = prefData.codeHighlighting ?? true;
+          }
+          setMode(preferredMode ?? "chat");
+          setSendOnEnter(sendOnEnter);
+          setCodeHighlighting(codeHighlighting);
+
           if (!useChatStore.getState().selectedModel) {
-            const prefRes = await fetch("/api/user/preferences");
-            let preferredModelId: string | undefined;
-            if (prefRes.ok) {
-              const prefData = (await prefRes.json()) as { defaultModel?: string };
-              preferredModelId = prefData.defaultModel;
-            }
             const preferred = MODELS.find((m) => m.id === preferredModelId);
             setSelectedModel(preferred ?? MODELS[1] ?? MODELS[0]);
+          }
+
+          const advancedRes = await fetch("/api/user/advanced");
+          if (advancedRes.ok) {
+            const advancedData = (await advancedRes.json()) as {
+              streamResponses?: boolean;
+              verboseToolLogs?: boolean;
+              safeMode?: boolean;
+              developerMode?: boolean;
+              betaFeatures?: boolean;
+            };
+            setStreamResponses(advancedData.streamResponses ?? true);
+            setVerboseToolLogs(advancedData.verboseToolLogs ?? false);
+            setSafeMode(advancedData.safeMode ?? true);
+            setDeveloperMode(advancedData.developerMode ?? false);
+            setBetaFeatures(advancedData.betaFeatures ?? false);
           }
 
           const res = await fetch("/api/sessions");
@@ -71,6 +105,14 @@ function ChatPageContent() {
     router,
     initialized,
     setSelectedModel,
+    setMode,
+    setSendOnEnter,
+    setCodeHighlighting,
+    setStreamResponses,
+    setVerboseToolLogs,
+    setSafeMode,
+    setDeveloperMode,
+    setBetaFeatures,
     setSessions,
     setCurrentMessages,
     setCurrentSessionId,

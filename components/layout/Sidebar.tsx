@@ -83,7 +83,7 @@ export function Sidebar() {
   );
 
   return (
-    <aside className="w-64 flex-shrink-0 flex flex-col h-full" style={{ background: "linear-gradient(180deg,#141414 0%,#1a1a1a 100%)" }}>
+    <aside className="w-64 flex-shrink-0 flex flex-col h-full" style={{ background: "linear-gradient(rgb(11 16 32) 0%, rgb(23 22 34) 100%)" }}>
       {/* Logo */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-white/5">
         <div className="flex items-center gap-2.5">

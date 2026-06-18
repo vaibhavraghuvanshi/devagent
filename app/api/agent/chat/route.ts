@@ -59,11 +59,15 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
 
     const body = await req.json();
-    const { sessionId, message, modelId, mode } = body as {
+    const { sessionId, message, modelId, mode, streamResponses, safeMode, developerMode, betaFeatures } = body as {
       sessionId?: string;
       message?: string;
       modelId?: string;
       mode?: string;
+      streamResponses?: boolean;
+      safeMode?: boolean;
+      developerMode?: boolean;
+      betaFeatures?: boolean;
     };
 
     if (!sessionId || typeof message !== "string" || !message.trim()) {
@@ -127,8 +131,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       include: { toolCalls: { orderBy: { createdAt: "asc" } } },
     });
 
+    const isSafeMode = safeMode !== false;
     const isAgentMode = mode === "agent";
-    const temperature = isAgentMode ? 0.3 : 0.7;
+    const allowTools = isAgentMode && !isSafeMode;
+    const enableStreaming = streamResponses !== false;
+    const temperature = isAgentMode ? (isSafeMode ? 0.2 : 0.3) : 0.7;
     const maxTokens = Math.min(4096, model.contextWindow - 2000);
 
     // Token budget: reserve space for system prompt + response
@@ -157,16 +164,17 @@ export async function POST(req: NextRequest): Promise<Response> {
 
         try {
           let rounds = 0;
+          const roundLimit = allowTools ? (betaFeatures ? MAX_TOOL_ROUNDS + 2 : MAX_TOOL_ROUNDS) : 1;
           let messages: ChatCompletionMessageParam[] = [...groqMessages];
 
           // In chat mode: single shot, no tools.
           // In agent mode: multi-round with tools.
-          while (rounds < MAX_TOOL_ROUNDS) {
+          while (rounds < roundLimit) {
             rounds += 1;
             const completion = await groq.chat.completions.create({
               model: model.id,
               messages,
-              ...(isAgentMode
+              ...(allowTools
                 ? { tools: AGENT_TOOL_DEFINITIONS, tool_choice: "auto" }
                 : { tool_choice: "none" }),
               temperature,
@@ -266,10 +274,17 @@ export async function POST(req: NextRequest): Promise<Response> {
               },
             });
 
-            for (const piece of chunkTextForStream(finalText)) {
+            for (const piece of chunkTextForStream(finalText, enableStreaming ? 32 : finalText.length || 1)) {
               send({ type: "token", content: piece });
             }
 
+            if (developerMode) {
+              send({
+                type: "meta",
+                mode: allowTools ? "agent-with-tools" : "chat-safe",
+                rounds,
+              });
+            }
             send({ type: "done", content: finalText });
             controller.close();
             return;

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { MODELS as AVAILABLE_MODELS } from "@/lib/models";
+import { useChatStore } from "@/lib/store";
 import {
   User,
   Settings,
@@ -420,6 +421,12 @@ function AccountSection() {
 
 /* ─── Preferences ──────────────────────────────────────────────────── */
 function PreferencesSection() {
+  const {
+    setMode: setChatMode,
+    setSendOnEnter: setChatSendOnEnter,
+    setCodeHighlighting: setChatCodeHighlighting,
+    setSelectedModel: setChatSelectedModel,
+  } = useChatStore();
   const [model, setModel]       = useState(AVAILABLE_MODELS[1]?.id ?? AVAILABLE_MODELS[0]?.id ?? "");
   const [mode, setMode]         = useState("chat");
   const [enter, setEnter]       = useState(true);
@@ -444,12 +451,18 @@ function PreferencesSection() {
 
   const handleSave = async () => {
     setSaving(true);
-    await fetch("/api/user/preferences", {
+    const res = await fetch("/api/user/preferences", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ defaultModel: model, defaultMode: mode, sendOnEnter: enter, codeHighlighting: highlight }),
     });
     setSaving(false);
+    if (!res.ok) return;
+    setChatMode(mode as "chat" | "agent");
+    setChatSendOnEnter(enter);
+    setChatCodeHighlighting(highlight);
+    const selected = AVAILABLE_MODELS.find((m) => m.id === model);
+    if (selected) setChatSelectedModel(selected);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -671,6 +684,456 @@ function DataPrivacySection() {
   );
 }
 
+/* ─── Security ──────────────────────────────────────────────────────── */
+function SecuritySection() {
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [loginAlerts, setLoginAlerts] = useState(true);
+  const [suspiciousSignInDetection, setSuspiciousSignInDetection] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/security")
+      .then((res) => parseJsonResponse<{ twoFactorEnabled?: boolean; loginAlerts?: boolean; suspiciousSignInDetection?: boolean }>(res))
+      .then((d) => {
+        if (!d) return;
+        setTwoFactorEnabled(d.twoFactorEnabled ?? false);
+        setLoginAlerts(d.loginAlerts ?? true);
+        setSuspiciousSignInDetection(d.suspiciousSignInDetection ?? true);
+      })
+      .catch((error) => console.error("Failed to load security settings", error));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const res = await fetch("/api/user/security", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ twoFactorEnabled, loginAlerts, suspiciousSignInDetection }),
+    });
+    setSaving(false);
+    if (!res.ok) return;
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <Card>
+      <SectionTitle>Security</SectionTitle>
+      <p className="text-xs text-[#9CA3AF] -mt-3 mb-5">Protect your account and get notified about risky activity</p>
+
+      <div className="rounded-xl border border-[#E5E7EB] dark:border-[#243042] px-4 mb-5">
+        <ToggleRow
+          label="Two-Factor Authentication"
+          hint="Require an additional verification step on login"
+          checked={twoFactorEnabled}
+          onChange={setTwoFactorEnabled}
+        />
+        <ToggleRow
+          label="Login Alerts"
+          hint="Email alerts for new sign-ins"
+          checked={loginAlerts}
+          onChange={setLoginAlerts}
+        />
+        <ToggleRow
+          label="Suspicious Sign-in Detection"
+          hint="Extra checks for unusual login patterns"
+          checked={suspiciousSignInDetection}
+          onChange={setSuspiciousSignInDetection}
+        />
+      </div>
+
+      <SaveButton saved={saved} loading={saving} onClick={handleSave} />
+    </Card>
+  );
+}
+
+/* ─── Integrations ──────────────────────────────────────────────────── */
+const SYNC_INTERVALS = [5, 15, 30, 60];
+
+function IntegrationsSection() {
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [slackConnected, setSlackConnected] = useState(false);
+  const [jiraConnected, setJiraConnected] = useState(false);
+  const [linearConnected, setLinearConnected] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [syncIntervalMinutes, setSyncIntervalMinutes] = useState(15);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/user/integrations")
+      .then((res) => parseJsonResponse<{
+        githubConnected?: boolean;
+        slackConnected?: boolean;
+        jiraConnected?: boolean;
+        linearConnected?: boolean;
+        webhookUrl?: string | null;
+        syncIntervalMinutes?: number;
+      }>(res))
+      .then((d) => {
+        if (!d) return;
+        setGithubConnected(d.githubConnected ?? false);
+        setSlackConnected(d.slackConnected ?? false);
+        setJiraConnected(d.jiraConnected ?? false);
+        setLinearConnected(d.linearConnected ?? false);
+        setWebhookUrl(d.webhookUrl ?? "");
+        setSyncIntervalMinutes(d.syncIntervalMinutes ?? 15);
+      })
+      .catch((loadError) => console.error("Failed to load integration settings", loadError));
+  }, []);
+
+  const handleSave = async () => {
+    setError("");
+    setSaving(true);
+    const res = await fetch("/api/user/integrations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        githubConnected,
+        slackConnected,
+        jiraConnected,
+        linearConnected,
+        webhookUrl,
+        syncIntervalMinutes,
+      }),
+    });
+    const data = await parseJsonResponse<{ error?: string }>(res);
+    setSaving(false);
+    if (!res.ok) {
+      setError(data?.error ?? "Failed to save integrations settings");
+      return;
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <Card>
+      <SectionTitle>Integrations</SectionTitle>
+      <p className="text-xs text-[#9CA3AF] -mt-3 mb-5">Connect external tools and control sync behavior</p>
+
+      <div className="rounded-xl border border-[#E5E7EB] dark:border-[#243042] px-4 mb-5">
+        <ToggleRow label="GitHub" hint="Sync repositories and pull request context" checked={githubConnected} onChange={setGithubConnected} />
+        <ToggleRow label="Slack" hint="Receive notifications and push summaries to channels" checked={slackConnected} onChange={setSlackConnected} />
+        <ToggleRow label="Jira" hint="Link tasks and issue references to sessions" checked={jiraConnected} onChange={setJiraConnected} />
+        <ToggleRow label="Linear" hint="Create and update Linear issues from agent workflows" checked={linearConnected} onChange={setLinearConnected} />
+      </div>
+
+      <Field label="Webhook URL" hint="Optional endpoint for integration events">
+        <input
+          className={inputCls}
+          placeholder="https://example.com/webhooks/devagent"
+          value={webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)}
+        />
+      </Field>
+
+      <Field label="Sync Interval">
+        <select className={inputCls} value={syncIntervalMinutes} onChange={(e) => setSyncIntervalMinutes(Number(e.target.value))}>
+          {SYNC_INTERVALS.map((minutes) => (
+            <option key={minutes} value={minutes}>{minutes} minutes</option>
+          ))}
+        </select>
+      </Field>
+
+      {error && <p className="mb-3 text-xs text-red-500">{error}</p>}
+      <SaveButton saved={saved} loading={saving} onClick={handleSave} />
+    </Card>
+  );
+}
+
+/* ─── Billing ───────────────────────────────────────────────────────── */
+const BILLING_PLANS = ["free", "pro", "team"] as const;
+const BILLING_CYCLES = ["monthly", "yearly"] as const;
+
+function BillingSection() {
+  const [plan, setPlan] = useState<(typeof BILLING_PLANS)[number]>("free");
+  const [billingCycle, setBillingCycle] = useState<(typeof BILLING_CYCLES)[number]>("monthly");
+  const [autoRenew, setAutoRenew] = useState(false);
+  const [usageAlerts, setUsageAlerts] = useState(true);
+  const [spendLimitUsd, setSpendLimitUsd] = useState(0);
+  const [invoiceEmail, setInvoiceEmail] = useState("");
+  const [taxId, setTaxId] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/user/billing")
+      .then((res) => parseJsonResponse<{
+        plan?: string;
+        billingCycle?: string;
+        autoRenew?: boolean;
+        usageAlerts?: boolean;
+        spendLimitUsd?: number;
+        invoiceEmail?: string | null;
+        taxId?: string | null;
+      }>(res))
+      .then((d) => {
+        if (!d) return;
+        if (d.plan && BILLING_PLANS.includes(d.plan as (typeof BILLING_PLANS)[number])) setPlan(d.plan as (typeof BILLING_PLANS)[number]);
+        if (d.billingCycle && BILLING_CYCLES.includes(d.billingCycle as (typeof BILLING_CYCLES)[number])) setBillingCycle(d.billingCycle as (typeof BILLING_CYCLES)[number]);
+        setAutoRenew(d.autoRenew ?? false);
+        setUsageAlerts(d.usageAlerts ?? true);
+        setSpendLimitUsd(d.spendLimitUsd ?? 0);
+        setInvoiceEmail(d.invoiceEmail ?? "");
+        setTaxId(d.taxId ?? "");
+      })
+      .catch((loadError) => console.error("Failed to load billing settings", loadError));
+  }, []);
+
+  const handleSave = async () => {
+    setError("");
+    setSaving(true);
+    const res = await fetch("/api/user/billing", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plan,
+        billingCycle,
+        autoRenew,
+        usageAlerts,
+        spendLimitUsd,
+        invoiceEmail,
+        taxId,
+      }),
+    });
+    const data = await parseJsonResponse<{ error?: string }>(res);
+    setSaving(false);
+    if (!res.ok) {
+      setError(data?.error ?? "Failed to save billing settings");
+      return;
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <Card>
+      <SectionTitle>Billing</SectionTitle>
+      <p className="text-xs text-[#9CA3AF] -mt-3 mb-5">Control plan, invoices, and spend protection settings</p>
+
+      <Field label="Plan">
+        <select className={inputCls} value={plan} onChange={(e) => setPlan(e.target.value as (typeof BILLING_PLANS)[number])}>
+          {BILLING_PLANS.map((p) => <option key={p} value={p}>{p.toUpperCase()}</option>)}
+        </select>
+      </Field>
+
+      <Field label="Billing Cycle">
+        <select className={inputCls} value={billingCycle} onChange={(e) => setBillingCycle(e.target.value as (typeof BILLING_CYCLES)[number])}>
+          {BILLING_CYCLES.map((cycle) => <option key={cycle} value={cycle}>{cycle}</option>)}
+        </select>
+      </Field>
+
+      <Field label="Spend Limit (USD)" hint="Set 0 to disable hard spend cap">
+        <input
+          className={inputCls}
+          type="number"
+          min={0}
+          max={100000}
+          value={spendLimitUsd}
+          onChange={(e) => setSpendLimitUsd(Number(e.target.value))}
+        />
+      </Field>
+
+      <Field label="Invoice Email">
+        <input
+          className={inputCls}
+          type="email"
+          placeholder="billing@example.com"
+          value={invoiceEmail}
+          onChange={(e) => setInvoiceEmail(e.target.value)}
+        />
+      </Field>
+
+      <Field label="Tax ID">
+        <input className={inputCls} value={taxId} onChange={(e) => setTaxId(e.target.value)} />
+      </Field>
+
+      <div className="rounded-xl border border-[#E5E7EB] dark:border-[#243042] px-4 mb-5">
+        <ToggleRow label="Auto Renew" hint="Automatically renew subscription at cycle end" checked={autoRenew} onChange={setAutoRenew} />
+        <ToggleRow label="Usage Alerts" hint="Receive alerts when usage approaches limits" checked={usageAlerts} onChange={setUsageAlerts} />
+      </div>
+
+      {error && <p className="mb-3 text-xs text-red-500">{error}</p>}
+      <SaveButton saved={saved} loading={saving} onClick={handleSave} />
+    </Card>
+  );
+}
+
+/* ─── Notifications ─────────────────────────────────────────────────── */
+function NotificationsSection() {
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(false);
+  const [productUpdates, setProductUpdates] = useState(true);
+  const [securityAlerts, setSecurityAlerts] = useState(true);
+  const [weeklySummary, setWeeklySummary] = useState(true);
+  const [quietHoursStart, setQuietHoursStart] = useState("22:00");
+  const [quietHoursEnd, setQuietHoursEnd] = useState("07:00");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/user/notifications")
+      .then((res) => parseJsonResponse<{
+        emailNotifications?: boolean;
+        pushNotifications?: boolean;
+        productUpdates?: boolean;
+        securityAlerts?: boolean;
+        weeklySummary?: boolean;
+        quietHoursStart?: string;
+        quietHoursEnd?: string;
+      }>(res))
+      .then((d) => {
+        if (!d) return;
+        setEmailNotifications(d.emailNotifications ?? true);
+        setPushNotifications(d.pushNotifications ?? false);
+        setProductUpdates(d.productUpdates ?? true);
+        setSecurityAlerts(d.securityAlerts ?? true);
+        setWeeklySummary(d.weeklySummary ?? true);
+        setQuietHoursStart(d.quietHoursStart ?? "22:00");
+        setQuietHoursEnd(d.quietHoursEnd ?? "07:00");
+      })
+      .catch((loadError) => console.error("Failed to load notification settings", loadError));
+  }, []);
+
+  const handleSave = async () => {
+    setError("");
+    setSaving(true);
+    const res = await fetch("/api/user/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        emailNotifications,
+        pushNotifications,
+        productUpdates,
+        securityAlerts,
+        weeklySummary,
+        quietHoursStart,
+        quietHoursEnd,
+      }),
+    });
+    const data = await parseJsonResponse<{ error?: string }>(res);
+    setSaving(false);
+    if (!res.ok) {
+      setError(data?.error ?? "Failed to save notification settings");
+      return;
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <Card>
+      <SectionTitle>Notifications</SectionTitle>
+      <p className="text-xs text-[#9CA3AF] -mt-3 mb-5">Configure channels, alert priority, and quiet hours</p>
+
+      <div className="rounded-xl border border-[#E5E7EB] dark:border-[#243042] px-4 mb-5">
+        <ToggleRow label="Email Notifications" hint="General account and product notifications" checked={emailNotifications} onChange={setEmailNotifications} />
+        <ToggleRow label="Push Notifications" hint="In-app push events for urgent updates" checked={pushNotifications} onChange={setPushNotifications} />
+        <ToggleRow label="Product Updates" hint="Release notes, improvements, and announcements" checked={productUpdates} onChange={setProductUpdates} />
+        <ToggleRow label="Security Alerts" hint="Critical account and security activity alerts" checked={securityAlerts} onChange={setSecurityAlerts} />
+        <ToggleRow label="Weekly Summary" hint="Digest of usage and top activity each week" checked={weeklySummary} onChange={setWeeklySummary} />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Field label="Quiet Hours Start">
+          <input className={inputCls} type="time" value={quietHoursStart} onChange={(e) => setQuietHoursStart(e.target.value)} />
+        </Field>
+        <Field label="Quiet Hours End">
+          <input className={inputCls} type="time" value={quietHoursEnd} onChange={(e) => setQuietHoursEnd(e.target.value)} />
+        </Field>
+      </div>
+
+      {error && <p className="mb-3 text-xs text-red-500">{error}</p>}
+      <SaveButton saved={saved} loading={saving} onClick={handleSave} />
+    </Card>
+  );
+}
+
+/* ─── Advanced ──────────────────────────────────────────────────────── */
+function AdvancedSection() {
+  const {
+    setStreamResponses: setStoreStreamResponses,
+    setVerboseToolLogs: setStoreVerboseToolLogs,
+    setSafeMode: setStoreSafeMode,
+    setDeveloperMode: setStoreDeveloperMode,
+    setBetaFeatures: setStoreBetaFeatures,
+  } = useChatStore();
+  const [developerMode, setDeveloperMode] = useState(false);
+  const [betaFeatures, setBetaFeatures] = useState(false);
+  const [streamResponses, setStreamResponses] = useState(true);
+  const [verboseToolLogs, setVerboseToolLogs] = useState(false);
+  const [safeMode, setSafeMode] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/user/advanced")
+      .then((res) => parseJsonResponse<{
+        developerMode?: boolean;
+        betaFeatures?: boolean;
+        streamResponses?: boolean;
+        verboseToolLogs?: boolean;
+        safeMode?: boolean;
+      }>(res))
+      .then((d) => {
+        if (!d) return;
+        setDeveloperMode(d.developerMode ?? false);
+        setBetaFeatures(d.betaFeatures ?? false);
+        setStreamResponses(d.streamResponses ?? true);
+        setVerboseToolLogs(d.verboseToolLogs ?? false);
+        setSafeMode(d.safeMode ?? true);
+      })
+      .catch((loadError) => console.error("Failed to load advanced settings", loadError));
+  }, []);
+
+  const handleSave = async () => {
+    setError("");
+    setSaving(true);
+    const res = await fetch("/api/user/advanced", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ developerMode, betaFeatures, streamResponses, verboseToolLogs, safeMode }),
+    });
+    const data = await parseJsonResponse<{ error?: string }>(res);
+    setSaving(false);
+    if (!res.ok) {
+      setError(data?.error ?? "Failed to save advanced settings");
+      return;
+    }
+    setStoreDeveloperMode(developerMode);
+    setStoreBetaFeatures(betaFeatures);
+    setStoreStreamResponses(streamResponses);
+    setStoreVerboseToolLogs(verboseToolLogs);
+    setStoreSafeMode(safeMode);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <Card>
+      <SectionTitle>Advanced</SectionTitle>
+      <p className="text-xs text-[#9CA3AF] -mt-3 mb-5">Fine-tune runtime behavior and experimental capabilities</p>
+
+      <div className="rounded-xl border border-[#E5E7EB] dark:border-[#243042] px-4 mb-5">
+        <ToggleRow label="Developer Mode" hint="Enable power-user controls and lower-level diagnostics" checked={developerMode} onChange={setDeveloperMode} />
+        <ToggleRow label="Beta Features" hint="Try early access functionality before general release" checked={betaFeatures} onChange={setBetaFeatures} />
+        <ToggleRow label="Stream Responses" hint="Render model responses progressively during generation" checked={streamResponses} onChange={setStreamResponses} />
+        <ToggleRow label="Verbose Tool Logs" hint="Persist detailed tool execution metadata for debugging" checked={verboseToolLogs} onChange={setVerboseToolLogs} />
+        <ToggleRow label="Safe Mode" hint="Restrict risky operations and enforce conservative defaults" checked={safeMode} onChange={setSafeMode} />
+      </div>
+
+      {error && <p className="mb-3 text-xs text-red-500">{error}</p>}
+      <SaveButton saved={saved} loading={saving} onClick={handleSave} />
+    </Card>
+  );
+}
+
 /* ─── Placeholder ──────────────────────────────────────────────────── */
 function PlaceholderSection({ label }: { label: string }) {
   return (
@@ -730,7 +1193,12 @@ export function SettingsView() {
           {active === "preferences"  && <PreferencesSection />}
           {active === "appearance"   && <AppearanceSection />}
           {active === "data-privacy" && <DataPrivacySection />}
-          {!["profile","account","preferences","appearance","data-privacy"].includes(active) && (
+          {active === "integrations" && <IntegrationsSection />}
+          {active === "billing"      && <BillingSection />}
+          {active === "security"     && <SecuritySection />}
+          {active === "notifications" && <NotificationsSection />}
+          {active === "advanced"      && <AdvancedSection />}
+          {!["profile","account","preferences","appearance","data-privacy","integrations","billing","security","notifications","advanced"].includes(active) && (
             <PlaceholderSection label={NAV.find((n) => n.id === active)?.label ?? active} />
           )}
         </div>

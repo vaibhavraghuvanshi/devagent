@@ -7,7 +7,7 @@ import { useGroqChat } from "@/lib/hooks/useGroqChat";
 
 export function InputBar() {
   const [message, setMessage] = useState("");
-  const { selectedModel, isLoading } = useChatStore();
+  const { selectedModel, isLoading, sendOnEnter } = useChatStore();
   const { sendMessage } = useGroqChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -36,6 +36,7 @@ export function InputBar() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!sendOnEnter) return;
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
@@ -90,4 +91,3 @@ export function InputBar() {
     </div>
   );
 }
-

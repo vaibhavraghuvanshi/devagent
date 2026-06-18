@@ -17,7 +17,7 @@ const SUGGESTIONS = [
 ];
 
 export function ChatLog() {
-  const { currentMessages, isLoading } = useChatStore();
+  const { currentMessages, isLoading, verboseToolLogs } = useChatStore();
   const { data: session } = useSession();
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -66,7 +66,7 @@ export function ChatLog() {
           {currentMessages.map((msg) => (
             <div key={msg.id} className="animate-slideUp">
               <MessageBubble message={msg} />
-              {msg.toolCalls && msg.toolCalls.length > 0 && (
+              {verboseToolLogs && msg.toolCalls && msg.toolCalls.length > 0 && (
                 <div className="ml-11 mt-3 space-y-2">
                   {msg.toolCalls.map((tc) => <ToolCallCard key={tc.id} toolCall={tc} />)}
                 </div>
