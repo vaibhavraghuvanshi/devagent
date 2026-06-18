@@ -1,0 +1,120 @@
+// Auth.js / NextAuth models + DevAgent chat persistence
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- NextAuth / Auth.js (required by @auth/prisma-adapter) ---
+
+model User {
+  id            String        @id @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?       // hashed, null for OAuth-only users
+  accounts      Account[]
+  sessions      Session[]
+  chatSessions  ChatSession[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- DevAgent chat (distinct from Auth "Session" above) ---
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New chat")
+  mode      String   @default("chat") // "chat" | "agent"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+  contextFiles ContextFile[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id            String    @id @default(cuid())
+  chatSessionId String
+  role          ChatRole
+  content       String    @db.Text
+  modelId       String?
+  createdAt     DateTime  @default(now())
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  toolCalls   ToolCall[]
+
+  @@index([chatSessionId, createdAt])
+}
+
+model ToolCall {
+  id         String   @id @default(cuid())
+  messageId  String
+  externalId String?
+  name       String
+  args       Json
+  result     String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+model ContextFile {
+  id            String   @id @default(cuid())
+  chatSessionId String
+  path          String
+  addedAt       DateTime @default(now())
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([chatSessionId, path])
+}
