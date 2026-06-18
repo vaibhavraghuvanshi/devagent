@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+/* ─── Class-based dark mode for next-themes (Tailwind v4 requires this) ── */
+@variant dark (&:is(.dark, .dark *));
+
+/* ─── Brand color tokens (Tailwind v4 @theme) ─────────────────────── */
+@theme {
+  --color-brand-50:  #f0fdf1;
+  --color-brand-100: #e8f9ea;
+  --color-brand-200: #d1f5d3;
+  --color-brand-400: #22d63b;
+  --color-brand-500: #15b728;
+  --color-brand-600: #12a023;
+  --color-brand-700: #0d8a1f;
+
+  --font-family-sans: Inter, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ─── Semantic design tokens ──────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Backgrounds */
+    --color-bg-primary:   244 244 248;   /* #f4f4f8 */
+    --color-bg-secondary: 255 255 255;   /* #FFFFFF  surface */
+    --color-bg-tertiary:  250 251 255;   /* #FAFBFF  surface-secondary */
+    --color-bg-sidebar:   255 255 255;   /* #FFFFFF  sidebar light */
+
+    /* Text */
+    --color-text-primary:   17  24  39;  /* #111827 */
+    --color-text-secondary: 107 114 128; /* #6B7280 */
+    --color-text-muted:     156 163 175; /* #9CA3AF */
+
+    /* Borders */
+    --color-border-primary: 229 231 235; /* #E5E7EB */
+    --color-border-light:   241 245 249; /* #F1F5F9 */
+
+    /* Brand (light mode) */
+    --color-brand-current:        21 183  40; /* #15b728 */
+    --color-brand-hover-current:  18 160  35; /* #12a023 */
+    --color-brand-subtle:        232 249 234; /* #e8f9ea */
+
+    /* Status */
+    --color-success: 16 185 129;
+    --color-warning: 245 158 11;
+    --color-error:   239  68  68;
+    --color-info:     59 130 246;
+  }
+
+  .dark {
+    /* Backgrounds */
+    --color-bg-primary:    11  16  32;   /* #0B1020 */
+    --color-bg-secondary:  17  24  39;   /* #111827  surface */
+    --color-bg-tertiary:   26  34  53;   /* #1A2235  surface-secondary */
+    --color-bg-sidebar:     5   8  22;   /* #050816  sidebar dark */
+
+    /* Text */
+    --color-text-primary:   249 250 251; /* #F9FAFB */
+    --color-text-secondary: 203 213 225; /* #CBD5E1 */
+    --color-text-muted:     148 163 184; /* #94A3B8 */
+
+    /* Borders */
+    --color-border-primary:  36  48  66; /* #243042 */
+    --color-border-light:    30  41  59; /* #1E293B */
+
+    /* Brand (dark mode) */
+    --color-brand-current:       21 183  40; /* #15b728 */
+    --color-brand-hover-current: 34 214  59; /* #22d63b */
+    --color-brand-subtle:        13  35  16; /* #0d2310 */
+
+    /* Status */
+    --color-success:  52 211 153;
+    --color-warning: 251 191  36;
+    --color-error:   248 113 113;
+    --color-info:     96 165 250;
+  }
+}
+
+/* ─── Custom utility classes ──────────────────────────────────────── */
+
+@utility bg-primary    { background-color: rgb(var(--color-bg-primary)); }
+@utility bg-secondary  { background-color: rgb(var(--color-bg-secondary)); }
+@utility bg-tertiary   { background-color: rgb(var(--color-bg-tertiary)); }
+@utility bg-sidebar    { background-color: rgb(var(--color-bg-sidebar)); }
+@utility bg-brand      { background-color: rgb(var(--color-brand-current)); }
+@utility bg-brand-subtle { background-color: rgb(var(--color-brand-subtle)); }
+
+@utility text-primary   { color: rgb(var(--color-text-primary)); }
+@utility text-secondary { color: rgb(var(--color-text-secondary)); }
+@utility text-muted     { color: rgb(var(--color-text-muted)); }
+@utility text-brand     { color: rgb(var(--color-brand-current)); }
+
+@utility border-primary { border-color: rgb(var(--color-border-primary)); }
+@utility border-light   { border-color: rgb(var(--color-border-light)); }
+@utility border-brand   { border-color: rgb(var(--color-brand-current)); }
+
+@utility ring-brand { --tw-ring-color: rgb(var(--color-brand-current)); }
+
+/* Gradient primary button */
+@utility btn-brand {
+  background: linear-gradient(135deg, rgb(var(--color-brand-current)) 0%, rgb(var(--color-brand-hover-current)) 100%);
+  color: #ffffff;
+  transition: opacity 150ms ease, box-shadow 150ms ease;
+  &:hover { opacity: 0.9; box-shadow: 0 0 24px rgba(21,183,40,0.35); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+}
+
+/* Glassmorphism */
+@utility glass {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.25);
+}
+@utility glass-dark {
+  background: rgba(17,24,39,0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Aurora background */
+@utility aurora {
+  background:
+    radial-gradient(circle at 70% 10%, rgba(139,126,255,0.18) 0%, transparent 45%),
+    radial-gradient(circle at 15% 85%, rgba(109, 93,246,0.14) 0%, transparent 45%);
+}
+
+/* Sidebar dark gradient */
+@utility sidebar-gradient {
+  background: linear-gradient(180deg, #050816 0%, #0F172A 100%);
+}
+
+/* User chat bubble gradient */
+@utility bubble-user {
+  background: linear-gradient(135deg, #e8f9ea 0%, #FFFFFF 100%);
+  color: #111827;
+}
+.dark .bubble-user-dark {
+  background: linear-gradient(135deg, #0d2310 0%, #0a2610 100%);
+  color: #F9FAFB;
+}
+
+/* OAuth button */
+@utility btn-oauth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  background: #FFFFFF;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  transition: all 150ms ease;
+  &:hover { background: #F7F8FC; border-color: #15b728; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.dark .btn-oauth-dark {
+  background: rgba(255,255,255,0.04);
+  border-color: #243042;
+  color: #F9FAFB;
+  &:hover { background: rgba(255,255,255,0.08); border-color: #1ec830; }
+}
+
+/* ─── Global base styles ──────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: Inter, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  background-color: rgb(var(--color-bg-primary));
+  color: rgb(var(--color-text-primary));
+  transition: color 200ms ease, background-color 200ms ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid rgb(var(--color-brand-current));
+  outline-offset: 2px;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-border-primary) / 0.6);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover { background-color: rgb(var(--color-text-muted) / 0.5); }
+
+/* ─── Animations ──────────────────────────────────────────────────── */
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(21,183,40,0.2); }
+  50%       { box-shadow: 0 0 40px rgba(21,183,40,0.45); }
+}
+
+.animate-fadeIn   { animation: fadeIn  0.25s ease-out; }
+.animate-slideUp  { animation: slideUp 0.3s  ease-out; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
