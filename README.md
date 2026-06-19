@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="https://github.com/vaibhavraghuvanshi/devagent/blob/f9c2d38411de7bc38e02ce6194837520bb48cdeb/screenshots/login.png" alt="Login" width="100%" />
+  <img src="https://github.com/vaibhavraghuvanshi/devagent/blob/f9c2d38411de7bc38e02ce6194837520bb48cdeb/screenshots/login.png" alt="Login" width="50%" />
 </p>
 <p align="center">
-  <img src="[./screenshots/hero.png](https://github.com/vaibhavraghuvanshi/devagent/blob/f9c2d38411de7bc38e02ce6194837520bb48cdeb/screenshots/landing-screen.png)" alt="Landing Screen" width="100%" />
+  <img src="./screenshots/landing-screen.png" alt="Landing Screen" width="50%" />
 </p>
 <p align="center">
-  <img src="./screenshots/agent-screen.png" alt="Agent Screen" width="100%" />
+  <img src="./screenshots/agent-screen.png" alt="Agent Screen" width="50%" />
 </p>
 <p align="center">
-  <img src="./screenshots/templates-screen.png" alt="Template Screen" width="100%" />
+  <img src="./screenshots/templates-screen.png" alt="Template Screen" width="50%" />
 </p>
 
 # DevAgent
