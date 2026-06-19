@@ -1,5 +1,4 @@
-# DevAgent
-
+#  Dev Agent — AI-Powered Coding Assistant
 An AI chat assistant built with Next.js, Prisma, and NextAuth. Supports persistent chat history, streaming agent tool execution, share links, and fully persisted per-user settings across 10 settings sections.
 
 ---
