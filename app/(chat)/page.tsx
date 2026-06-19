@@ -43,7 +43,12 @@ function ChatPageContent() {
     } else if (status === "authenticated" && !initialized) {
       (async () => {
         try {
-          const prefRes = await fetch("/api/user/preferences");
+          const [prefRes, advancedRes, sessionsRes] = await Promise.all([
+            fetch("/api/user/preferences"),
+            fetch("/api/user/advanced"),
+            fetch("/api/sessions"),
+          ]);
+
           let preferredModelId: string | undefined;
           let preferredMode: "chat" | "agent" | undefined;
           let sendOnEnter = true;
@@ -64,7 +69,6 @@ function ChatPageContent() {
             setSelectedModel(preferred ?? MODELS[1] ?? MODELS[0]);
           }
 
-          const advancedRes = await fetch("/api/user/advanced");
           if (advancedRes.ok) {
             const advancedData = (await advancedRes.json()) as {
               streamResponses?: boolean;
@@ -80,13 +84,12 @@ function ChatPageContent() {
             setBetaFeatures(advancedData.betaFeatures ?? false);
           }
 
-          const res = await fetch("/api/sessions");
-          if (!res.ok) {
-            console.error("Failed to load sessions", await res.text());
+          if (!sessionsRes.ok) {
+            console.error("Failed to load sessions", await sessionsRes.text());
             setInitialized(true);
             return;
           }
-          const data = (await res.json()) as { sessions?: Session[] };
+          const data = (await sessionsRes.json()) as { sessions?: Session[] };
           const list = Array.isArray(data.sessions) ? data.sessions : [];
 
           setSessions(list);

@@ -11,11 +11,19 @@ export function InputBar() {
   const { sendMessage } = useGroqChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const resizeThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    if (resizeThrottleRef.current) clearTimeout(resizeThrottleRef.current);
+    resizeThrottleRef.current = setTimeout(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    }, 100);
+    return () => {
+      if (resizeThrottleRef.current) clearTimeout(resizeThrottleRef.current);
+    };
   }, [message]);
 
   useEffect(() => {

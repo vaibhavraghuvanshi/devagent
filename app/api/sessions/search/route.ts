@@ -8,7 +8,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
+  const q = (req.nextUrl.searchParams.get("q") ?? "").slice(0, 200).trim();
 
   try {
     const rows = await db.chatSession.findMany({
@@ -29,12 +29,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       },
       orderBy: { updatedAt: "desc" },
       take: 50,
-      select: {
-        id: true,
-        title: true,
-        mode: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         _count: { select: { messages: true } },
       },
     });

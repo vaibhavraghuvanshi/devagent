@@ -11,6 +11,20 @@ import { dbThreadToGroqMessages } from "@/lib/chat-thread";
 
 const MAX_TOOL_ROUNDS = 8;
 const CHARS_PER_TOKEN = 4; // rough approximation
+const TOOL_TIMEOUT_MS = 30_000;
+
+/** Race a tool execution against a hard timeout to prevent hung streams. */
+function withToolTimeout<T>(promise: Promise<T>): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Tool timed out after ${TOOL_TIMEOUT_MS / 1000}s`)),
+        TOOL_TIMEOUT_MS
+      )
+    ),
+  ]);
+}
 
 /** Estimate token count from a string. */
 function estimateTokens(text: string): number {
@@ -139,8 +153,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     const maxTokens = Math.min(4096, model.contextWindow - 2000);
 
     // Token budget: reserve space for system prompt + response
+    // Clamped to 0 so trimMessagesToBudget never receives a negative value
     const systemTokens = estimateTokens(SYSTEM_PROMPT);
-    const historyBudget = model.contextWindow - maxTokens - systemTokens - 512;
+    const historyBudget = Math.max(0, model.contextWindow - maxTokens - systemTokens - 512);
     const trimmedHistory = trimMessagesToBudget(
       dbThreadToGroqMessages(rows),
       historyBudget
@@ -238,7 +253,12 @@ export async function POST(req: NextRequest): Promise<Response> {
                   assistantMessageId: assistantRecord.id,
                 });
 
-                const result = await executeAgentTool(fn.name, parsedArgs);
+                let result: string;
+                try {
+                  result = await withToolTimeout(executeAgentTool(fn.name, parsedArgs));
+                } catch (toolErr) {
+                  result = `Tool error: ${toolErr instanceof Error ? toolErr.message : String(toolErr)}`;
+                }
 
                 await db.toolCall.update({
                   where: { id: toolRow.id },

@@ -11,18 +11,20 @@ if (!process.env.NEXTAUTH_SECRET && !process.env.AUTH_SECRET) {
   throw new Error("NEXTAUTH_SECRET or AUTH_SECRET is not defined");
 }
 
+const oauthProviders = [
+  process.env.GITHUB_ID && process.env.GITHUB_SECRET
+    ? GitHubProvider({ clientId: process.env.GITHUB_ID, clientSecret: process.env.GITHUB_SECRET })
+    : null,
+  process.env.GOOGLE_ID && process.env.GOOGLE_SECRET
+    ? GoogleProvider({ clientId: process.env.GOOGLE_ID, clientSecret: process.env.GOOGLE_SECRET })
+    : null,
+].filter((p): p is NonNullable<typeof p> => p !== null);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(db),
   providers: [
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID || "",
-      clientSecret: process.env.GITHUB_SECRET || "",
-    }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_ID || "",
-      clientSecret: process.env.GOOGLE_SECRET || "",
-    }),
+    ...oauthProviders,
     CredentialsProvider({
       name: "credentials",
       credentials: {

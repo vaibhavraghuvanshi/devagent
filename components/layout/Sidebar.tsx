@@ -3,7 +3,7 @@
 import { useChatStore, Session } from "@/lib/store";
 import { Plus, Trash2, Search, BookOpen, Bot, LayoutTemplate, Sparkles, ChevronUp, Settings, LogOut } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 
 function SectionLabel({ label }: { label: string }) {
   return (
@@ -22,6 +22,30 @@ function groupSessions(sessions: Session[]) {
   }
   return { today, yesterday, earlier };
 }
+
+type SessionItemProps = {
+  s: Session;
+  isActive: boolean;
+  onSelect: (id: string) => void;
+  onDelete: (e: React.MouseEvent, id: string) => void;
+};
+
+const SessionItem = memo(function SessionItem({ s, isActive, onSelect, onDelete }: SessionItemProps) {
+  return (
+    <div onClick={() => onSelect(s.id)}
+      className={`group flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-sm cursor-pointer transition-all ${
+        isActive
+          ? "bg-white/10 text-white font-medium"
+          : "text-[#bbbbbc] hover:bg-white/5 hover:text-white"
+      }`} title={s.title}>
+      <span className="truncate">{s.title || "Untitled"}</span>
+      <button onClick={(e) => onDelete(e, s.id)}
+        className="flex-shrink-0 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all p-0.5 rounded">
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+});
 
 export function Sidebar() {
   const { sessions, currentSessionId, setCurrentSessionId, setCurrentMessages, setSessions, mode, view, setView, setSearchOpen } = useChatStore();
@@ -44,7 +68,7 @@ export function Sidebar() {
     } catch (e) { console.error(e); }
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDelete = useCallback(async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
       const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
@@ -53,10 +77,10 @@ export function Sidebar() {
       console.error("Failed to delete chat", error);
       return;
     }
-    const updated = sessions.filter((s) => s.id !== id);
-    setSessions(updated);
-    if (currentSessionId === id) { setCurrentSessionId(null); setCurrentMessages([]); setView("chat"); }
-  };
+    const { sessions: latest, currentSessionId: activeId } = useChatStore.getState();
+    setSessions(latest.filter((s) => s.id !== id));
+    if (activeId === id) { setCurrentSessionId(null); setCurrentMessages([]); setView("chat"); }
+  }, [setSessions, setCurrentSessionId, setCurrentMessages, setView]);
 
   const NAV_ITEMS = [
     { icon: Search,         label: "Search",    action: () => setSearchOpen(true) },
@@ -65,22 +89,13 @@ export function Sidebar() {
     { icon: LayoutTemplate, label: "Templates", action: () => setView("templates") },
   ];
 
-  const { today, yesterday, earlier } = groupSessions(sessions);
+  const { today, yesterday, earlier } = useMemo(() => groupSessions(sessions), [sessions]);
 
-  const SessionItem = ({ s }: { s: Session }) => (
-    <div onClick={() => { setCurrentSessionId(s.id); setCurrentMessages([]); setView("chat"); }}
-      className={`group flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-sm cursor-pointer transition-all ${
-        currentSessionId === s.id
-          ? "bg-white/10 text-white font-medium"
-          : "text-[#bbbbbc] hover:bg-white/5 hover:text-white"
-      }`} title={s.title}>
-      <span className="truncate">{s.title || "Untitled"}</span>
-      <button onClick={(e) => handleDelete(e, s.id)}
-        className="flex-shrink-0 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all p-0.5 rounded">
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
-    </div>
-  );
+  const handleSelectSession = useCallback((id: string) => {
+    setCurrentSessionId(id);
+    setCurrentMessages([]);
+    setView("chat");
+  }, [setCurrentSessionId, setCurrentMessages, setView]);
 
   return (
     <aside className="w-64 flex-shrink-0 flex flex-col h-full" style={{ background: "linear-gradient(rgb(11 16 32) 0%, rgb(23 22 34) 100%)" }}>
@@ -130,9 +145,9 @@ export function Sidebar() {
           <p className="px-3 py-6 text-xs text-center text-[#475569]">No chats yet</p>
         ) : (
           <>
-            {today.length > 0 && (<><SectionLabel label="Today" />{today.map((s) => <SessionItem key={s.id} s={s} />)}</>)}
-            {yesterday.length > 0 && (<><SectionLabel label="Yesterday" />{yesterday.map((s) => <SessionItem key={s.id} s={s} />)}</>)}
-            {earlier.length > 0 && (<><SectionLabel label="Last 7 days" />{earlier.map((s) => <SessionItem key={s.id} s={s} />)}</>)}
+            {today.length > 0 && (<><SectionLabel label="Today" />{today.map((s) => <SessionItem key={s.id} s={s} isActive={s.id === currentSessionId} onSelect={handleSelectSession} onDelete={handleDelete} />)}</>)}
+            {yesterday.length > 0 && (<><SectionLabel label="Yesterday" />{yesterday.map((s) => <SessionItem key={s.id} s={s} isActive={s.id === currentSessionId} onSelect={handleSelectSession} onDelete={handleDelete} />)}</>)}
+            {earlier.length > 0 && (<><SectionLabel label="Last 7 days" />{earlier.map((s) => <SessionItem key={s.id} s={s} isActive={s.id === currentSessionId} onSelect={handleSelectSession} onDelete={handleDelete} />)}</>)}
           </>
         )}
       </div>

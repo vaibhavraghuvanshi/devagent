@@ -3,8 +3,10 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { prismaMessageToClient } from "@/lib/chat-serialize";
 
+const PAGE_SIZE = 50;
+
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const session = await auth();
@@ -13,6 +15,7 @@ export async function GET(
   }
 
   const { id } = await params;
+  const cursor = req.nextUrl.searchParams.get("cursor") ?? undefined;
 
   try {
     const chatSession = await db.chatSession.findFirst({
@@ -26,11 +29,18 @@ export async function GET(
     const rows = await db.chatMessage.findMany({
       where: { chatSessionId: id },
       orderBy: { createdAt: "asc" },
+      take: PAGE_SIZE + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: { toolCalls: { orderBy: { createdAt: "asc" } } },
     });
 
+    const hasMore = rows.length > PAGE_SIZE;
+    const messages = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+    const nextCursor = hasMore ? messages[messages.length - 1].id : null;
+
     return NextResponse.json({
-      messages: rows.map(prismaMessageToClient),
+      messages: messages.map(prismaMessageToClient),
+      nextCursor,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useChatStore, Message, Session } from "@/lib/store";
 
 async function fetchSessionMessages(sessionId: string): Promise<Message[]> {
@@ -28,6 +28,10 @@ export function useGroqChat() {
     remapLastAssistantMessageId,
   } = useChatStore();
 
+  // Prevents duplicate session creation if the user sends two messages
+  // before the first POST /api/sessions response returns.
+  const isCreatingSession = useRef(false);
+
   const sendMessage = useCallback(
     async (userMessage: string) => {
       if (!selectedModel) return;
@@ -35,6 +39,8 @@ export function useGroqChat() {
       // Auto-create a session if one isn't active yet
       let sessionId = currentSessionId;
       if (!sessionId) {
+        if (isCreatingSession.current) return;
+        isCreatingSession.current = true;
         try {
           const res = await fetch("/api/sessions", {
             method: "POST",
@@ -50,6 +56,8 @@ export function useGroqChat() {
         } catch (e) {
           console.error("Session creation failed:", e);
           return;
+        } finally {
+          isCreatingSession.current = false;
         }
       }
 

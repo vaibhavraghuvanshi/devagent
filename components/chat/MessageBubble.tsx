@@ -3,7 +3,7 @@
 import { Message } from "@/lib/store";
 import { getModelById, getTierTextColor } from "@/lib/models";
 import { Sparkles, User, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,11 +13,19 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const model = message.modelId ? getModelById(message.modelId) : null;
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

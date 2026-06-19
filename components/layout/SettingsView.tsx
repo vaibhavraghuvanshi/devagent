@@ -238,12 +238,86 @@ function ProfileSection() {
       <Card>
         <h3 className="text-base font-bold text-red-500 mb-1">Danger Zone</h3>
         <p className="text-xs text-[#9CA3AF] mb-4">Permanently delete your account and all data.</p>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-300 dark:border-red-800 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all">
-          <Trash2 className="w-4 h-4" />
-          Delete Account
-        </button>
+        <DeleteAccountButton />
       </Card>
     </div>
+  );
+}
+
+/* ─── Delete Account confirmation modal ───────────────────────────── */
+function DeleteAccountButton() {
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const CONFIRM_PHRASE = "delete my account";
+
+  const handleDelete = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/user/account", { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}) as Record<string, unknown>) as { error?: string };
+        setError(d.error ?? "Failed to delete account. Please try again.");
+        setLoading(false);
+        return;
+      }
+      await signOut({ callbackUrl: "/login" });
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-300 dark:border-red-800 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+      >
+        <Trash2 className="w-4 h-4" />
+        Delete Account
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#243042] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-base font-bold text-red-500 mb-1">Delete Account</h3>
+            <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mb-4">
+              This permanently deletes your account and all chat history. This cannot be undone.
+            </p>
+            <p className="text-xs text-[#111827] dark:text-[#F9FAFB] mb-2">
+              Type <span className="font-mono font-bold">{CONFIRM_PHRASE}</span> to confirm:
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={CONFIRM_PHRASE}
+              className="w-full px-3 py-2 mb-4 rounded-xl border border-[#E5E7EB] dark:border-[#243042] bg-white dark:bg-white/5 text-sm text-[#111827] dark:text-[#F9FAFB] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setOpen(false); setConfirmText(""); setError(""); }}
+                className="flex-1 px-4 py-2 rounded-xl border border-[#E5E7EB] dark:border-[#243042] text-sm text-[#6B7280] hover:bg-[#F9FAFB] dark:hover:bg-white/5 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={confirmText !== CONFIRM_PHRASE || loading}
+                className="flex-1 px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? "Deleting…" : "Delete Forever"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

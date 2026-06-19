@@ -26,23 +26,34 @@ export async function GET(): Promise<Response> {
 export async function PATCH(req: NextRequest): Promise<Response> {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = session.user.id; // capture before async callbacks lose narrowing
 
   try {
     const body = await req.json();
 
-    // Email update
+    // Email update — atomic: conflict-check + update in one transaction
+    // prevents a race condition where two requests could both pass the check
     if (typeof body.email === "string") {
       const email = body.email.trim().toLowerCase();
-      const existing = await db.user.findUnique({ where: { email } });
-      if (existing && existing.id !== session.user.id) {
-        return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+      try {
+        await db.$transaction(async (tx) => {
+          const existing = await tx.user.findUnique({ where: { email } });
+          if (existing && existing.id !== userId) {
+            throw Object.assign(new Error("Email already in use"), { code: "EMAIL_IN_USE" });
+          }
+          await tx.user.update({ where: { id: userId }, data: { email } });
+        });
+      } catch (e) {
+        if ((e as { code?: string }).code === "EMAIL_IN_USE") {
+          return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+        }
+        throw e;
       }
-      await db.user.update({ where: { id: session.user.id }, data: { email } });
     }
 
     // Password change
     if (body.currentPassword && body.newPassword) {
-      const user = await db.user.findUnique({ where: { id: session.user.id } });
+      const user = await db.user.findUnique({ where: { id: userId } });
       if (!user?.password) {
         return NextResponse.json({ error: "No password set for this account" }, { status: 400 });
       }
@@ -54,7 +65,7 @@ export async function PATCH(req: NextRequest): Promise<Response> {
         return NextResponse.json({ error: "New password must be at least 8 characters" }, { status: 400 });
       }
       const hashed = await bcrypt.hash(body.newPassword as string, 12);
-      await db.user.update({ where: { id: session.user.id }, data: { password: hashed } });
+      await db.user.update({ where: { id: userId }, data: { password: hashed } });
     }
 
     return NextResponse.json({ success: true });
@@ -67,9 +78,10 @@ export async function PATCH(req: NextRequest): Promise<Response> {
 export async function DELETE(): Promise<Response> {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = session.user.id;
 
   try {
-    await db.user.delete({ where: { id: session.user.id } });
+    await db.user.delete({ where: { id: userId } });
     return NextResponse.json({ success: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
