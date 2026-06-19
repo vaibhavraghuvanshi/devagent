@@ -10,7 +10,7 @@ An AI chat assistant built with Next.js, Prisma, and NextAuth. Supports persiste
 |-------|-----------|
 | Framework | Next.js 16.2 (App Router), React 19, TypeScript 5 |
 | Database | PostgreSQL via Prisma 5.17 ORM |
-| Auth | NextAuth 5 (GitHub, Google OAuth + email/password credentials) |
+| Auth | NextAuth 5 (GitHub, Google OAuth + email/password credentials) + password reset via email |
 | AI inference | Groq SDK — `llama-3.3-70b-versatile` and other Groq models |
 | State | Zustand 4 |
 | Styling | Tailwind CSS 4, lucide-react icons, next-themes |
@@ -60,6 +60,11 @@ An AI chat assistant built with Next.js, Prisma, and NextAuth. Supports persiste
 - **Settings save guard** — `useRef` lock prevents duplicate in-flight save requests; all save errors are now surfaced inline
 - **Registration success delay** — success message stays visible for 1.5 s before the form resets
 
+### Authentication
+- **Email / password sign-up & sign-in**
+- **OAuth** — GitHub and Google (buttons hidden when env vars are not set)
+- **Forgot password** — "Forgot password?" link on the login form opens an inline email form; a time-limited reset link (1 h expiry) is emailed via SMTP; the `/reset-password/[token]` page validates the token before the user types, shows a friendly expired-link state, and redirects to login after a successful reset; tokens are single-use and deleted in the same DB transaction as the password update
+
 ---
 
 ## Project structure
@@ -68,11 +73,14 @@ An AI chat assistant built with Next.js, Prisma, and NextAuth. Supports persiste
 devagent/
 ├── app/
 │   ├── (chat)/page.tsx          # Main chat UI (protected)
-│   ├── login/page.tsx           # Sign-in / sign-up
+│   ├── login/page.tsx           # Sign-in / sign-up / forgot-password
+│   ├── reset-password/[token]/page.tsx  # Password-reset form
 │   ├── share/[token]/page.tsx   # Public shared chat viewer
 │   └── api/
 │       ├── auth/[...nextauth]/  # NextAuth handlers
 │       ├── auth/register/       # Email registration
+│       ├── auth/forgot-password/ # Send password-reset email
+│       ├── auth/reset-password/  # Validate token & update password
 │       ├── agent/chat/          # Streaming agent endpoint
 │       ├── sessions/            # CRUD + search
 │       ├── sessions/[id]/       # Title update, delete
@@ -199,7 +207,8 @@ User ──┬── UserProfile
        ├── ChatSession ─────┬── ChatMessage ── ToolCall
        │                    ├── ContextFile
        │                    └── SharedChat
-       └── SharedChat
+       ├── SharedChat
+       └── PasswordResetToken   (single-use, 1 h TTL)
 ```
 
 ---
@@ -209,6 +218,7 @@ User ──┬── UserProfile
 - **Prisma engine lock on Windows** — if `prisma generate` fails with EPERM, stop all running Next.js / Node processes (they hold the DLL), then re-run `npm run prisma:generate`.
 - **JWT strategy** — sessions are stored in browser cookies only; the `Session` table is unused. If you reset the database, any existing browser JWTs will carry a stale user ID. Sign out and back in, or run `npx prisma db seed` to restore the dev user.
 - **OAuth providers** — set `GITHUB_ID` / `GITHUB_SECRET` or `GOOGLE_ID` / `GOOGLE_SECRET` to enable the respective OAuth buttons on the login page. Omitting both env vars hides the buttons automatically.
+- **Forgot password** — requires SMTP env vars (`EMAIL_SERVER_*`). Tokens expire after 1 hour and are deleted immediately after use. The response always returns `200` regardless of whether the email exists to prevent account enumeration.
 
 <p align="center">
   <img src="https://github.com/vaibhavraghuvanshi/devagent/blob/f9c2d38411de7bc38e02ce6194837520bb48cdeb/screenshots/login.png" alt="Login" width="100%" />
