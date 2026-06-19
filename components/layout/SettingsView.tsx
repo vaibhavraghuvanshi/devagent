@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import { MODELS as AVAILABLE_MODELS } from "@/lib/models";
 import { useChatStore } from "@/lib/store";
 import {

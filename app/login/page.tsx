@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { Loader2, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import LogoImage from "@/public/dev-agent-logo.svg";
 
 type Mode = "signin" | "signup";
 
@@ -81,11 +83,8 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-[400px]">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-[20px] mb-5"
-            style={{ background: "linear-gradient(135deg,#15b728 0%,#22d63b 100%)", boxShadow: "0 0 40px rgba(21,183,40,0.35)" }}>
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
+        <div className="flex justify-center items-center flex-col text-center mb-8">
+          <Image src={LogoImage} alt="Dev Agent Logo" className="w-20 h-20 mb-5" style={{ filter: "drop-shadow(0 0 28px rgba(109,93,246,0.45))" }} />
           <h1 className="text-[28px] font-bold text-[#111827] dark:text-[#F9FAFB] mb-2">
             Welcome to{" "}
             <span style={{ background: "linear-gradient(135deg,#15b728,#22d63b)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>

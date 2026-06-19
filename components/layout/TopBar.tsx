@@ -7,6 +7,8 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ShareModal } from "@/components/layout/ShareModal";
 import { SessionInfoPanel } from "@/components/layout/SessionInfoPanel";
 import { ChevronDown, Share2, Info } from "lucide-react";
+import Image from "next/image";
+import LogoImage from "@/public/dev-agent-logo.svg";
 
 export function TopBar() {
   const { mode, setMode, currentSessionId } = useChatStore();
@@ -16,6 +18,7 @@ export function TopBar() {
     <>
     <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB] dark:border-[#243042] bg-white dark:bg-[#111827]">
       <div className="flex items-center gap-2">
+        <Image src={LogoImage} alt="Dev Agent Logo" className="w-8 h-8 flex-shrink-0" />
         <button className="flex items-center gap-1.5 text-[15px] font-semibold text-[#111827] dark:text-[#F9FAFB] hover:opacity-80 transition-opacity">
           {currentSessionId ? "Chat" : "New Chat"}
           <ChevronDown className="w-4 h-4 text-[#9CA3AF]" />

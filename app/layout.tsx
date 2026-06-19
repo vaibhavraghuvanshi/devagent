@@ -18,6 +18,15 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Anti-flicker: set dark class before React hydrates so there's no theme flash.
+            This runs as plain HTML (Server Component), not inside any React client tree. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('theme')||'system';if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')})()`,
+          }}
+        />
+      </head>
       <body>
         <SessionProvider session={session}>
           <Providers>{children}</Providers>

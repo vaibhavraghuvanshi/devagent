@@ -1,9 +1,11 @@
 "use client";
 
 import { useChatStore, Session } from "@/lib/store";
-import { Plus, Trash2, Search, BookOpen, Bot, LayoutTemplate, Sparkles, ChevronUp, Settings, LogOut } from "lucide-react";
+import { Plus, Trash2, Search, BookOpen, Bot, LayoutTemplate, ChevronUp, Settings, LogOut } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useState, useMemo, useCallback, memo } from "react";
+import Image from "next/image";
+import LogoImage from "@/public/dev-agent-logo.svg";
 
 function SectionLabel({ label }: { label: string }) {
   return (
@@ -102,10 +104,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-white/5">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "linear-gradient(135deg,#15b728 0%,#22d63b 100%)" }}>
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
+          <Image src={LogoImage} alt="Dev Agent Logo" className="w-8 h-8 flex-shrink-0" />
           <span className="text-sm font-bold text-white tracking-wide">Dev Agent</span>
         </div>
         <button onClick={handleNewChat}

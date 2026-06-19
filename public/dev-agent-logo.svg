@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6D5DF6"/>
+      <stop offset="100%" stop-color="#8B7EFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="56" y="56" width="400" height="400" rx="96" fill="url(#g)"/>
+  <path d="M256 140 L332 188 L332 284 C332 340 296 382 256 396 C216 382 180 340 180 284 L180 188 Z"
+        fill="white" opacity="0.96"/>
+  <path d="M256 196 L286 256 L256 240 L226 256 Z" fill="#6D5DF6"/>
+  <circle cx="256" cy="128" r="18" fill="white"/>
+  <text x="256" y="485" text-anchor="middle"
+        font-family="Inter, Arial, sans-serif"
+        font-size="42" font-weight="700" fill="#111827">Dev Agent</text>
+</svg>
