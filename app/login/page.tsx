@@ -66,7 +66,7 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || "Registration failed"); setLoading(null); return; }
       const result = await signIn("credentials", { email, password, redirect: false });
       if (result?.ok) { window.location.href = "/"; }
-      else { setSuccess("Account created! Please sign in."); switchMode("signin"); }
+      else { setSuccess("Account created! Please sign in."); setTimeout(() => switchMode("signin"), 1500); }
     } catch { setError("Something went wrong."); setLoading(null); }
   };
 

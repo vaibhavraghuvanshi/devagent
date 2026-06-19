@@ -17,7 +17,7 @@ const SUGGESTIONS = [
 ];
 
 export function ChatLog() {
-  const { currentMessages, isLoading, verboseToolLogs } = useChatStore();
+  const { currentMessages, isLoading, verboseToolLogs, isLoadingSession } = useChatStore();
   const { data: session } = useSession();
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +27,19 @@ export function ChatLog() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#f4f4f8] dark:bg-[#0B1020]">
-      {currentMessages.length === 0 ? (
+      {isLoadingSession ? (
+        <div className="max-w-3xl mx-auto px-5 py-6 space-y-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="animate-pulse flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#E5E7EB] dark:bg-[#1e293b] flex-shrink-0" />
+              <div className="flex-1 space-y-2 pt-1">
+                <div className="h-3.5 bg-[#E5E7EB] dark:bg-[#1e293b] rounded-lg" style={{ width: `${70 - i * 12}%` }} />
+                <div className="h-3.5 bg-[#E5E7EB] dark:bg-[#1e293b] rounded-lg" style={{ width: `${50 - i * 8}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : currentMessages.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-full px-6 py-16">
           <div className="w-full max-w-2xl">
             <div className="flex items-center gap-3 mb-2">

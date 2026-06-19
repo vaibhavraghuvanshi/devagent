@@ -34,8 +34,10 @@ function ChatPageContent() {
     setView,
     currentSessionId,
     view,
+    setIsLoadingSession,
   } = useChatStore();
   const [initialized, setInitialized] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -85,7 +87,7 @@ function ChatPageContent() {
           }
 
           if (!sessionsRes.ok) {
-            console.error("Failed to load sessions", await sessionsRes.text());
+            setInitError("Failed to load sessions. Please refresh the page.");
             setInitialized(true);
             return;
           }
@@ -98,6 +100,7 @@ function ChatPageContent() {
           setView("chat");
         } catch (e) {
           console.error(e);
+          setInitError("Failed to initialize. Please refresh the page.");
         } finally {
           setInitialized(true);
         }
@@ -126,17 +129,24 @@ function ChatPageContent() {
     if (status !== "authenticated" || !initialized || !currentSessionId) return;
 
     let cancelled = false;
+    setIsLoadingSession(true);
     (async () => {
       const res = await fetch(`/api/sessions/${currentSessionId}/messages`);
       const data = (await res.json()) as { messages?: unknown };
-      if (cancelled || !res.ok || !Array.isArray(data.messages)) return;
+      if (cancelled) return;
+      if (!res.ok || !Array.isArray(data.messages)) {
+        setIsLoadingSession(false);
+        return;
+      }
       setCurrentMessages(data.messages as Message[]);
+      setIsLoadingSession(false);
     })();
 
     return () => {
       cancelled = true;
+      setIsLoadingSession(false);
     };
-  }, [currentSessionId, initialized, status, setCurrentMessages]);
+  }, [currentSessionId, initialized, status, setCurrentMessages, setIsLoadingSession]);
 
   if (status === "loading" || (status === "authenticated" && !initialized)) {
     return (
@@ -158,6 +168,12 @@ function ChatPageContent() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
+        {initError && (
+          <div className="flex items-center justify-between px-4 py-2.5 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 text-sm" role="alert">
+            <span>{initError}</span>
+            <button onClick={() => setInitError(null)} className="ml-4 text-red-400 hover:text-red-600 transition-colors" aria-label="Dismiss">✕</button>
+          </div>
+        )}
         {view === "library" ? (
           <LibraryView />
         ) : view === "agents" ? (

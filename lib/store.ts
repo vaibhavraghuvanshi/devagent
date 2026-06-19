@@ -40,6 +40,7 @@ interface ChatStore {
   mode: "chat" | "agent";
   contextFiles: ContextFile[];
   isLoading: boolean;
+  isLoadingSession: boolean;
   view: "chat" | "library" | "agents" | "templates" | "settings";
   searchOpen: boolean;
   sendOnEnter: boolean;
@@ -67,6 +68,7 @@ interface ChatStore {
   addContextFile: (path: string) => void;
   removeContextFile: (path: string) => void;
   setIsLoading: (loading: boolean) => void;
+  setIsLoadingSession: (loading: boolean) => void;
   addMessage: (message: Message) => void;
   addToolCall: (toolCall: ToolCall) => void;
   updateToolCallResult: (toolCallId: string, result: string) => void;
@@ -83,6 +85,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   mode: "chat",
   contextFiles: [],
   isLoading: false,
+  isLoadingSession: false,
   view: "chat",
   searchOpen: false,
   sendOnEnter: true,
@@ -122,6 +125,7 @@ export const useChatStore = create<ChatStore>((set) => ({
       contextFiles: state.contextFiles.filter((f) => f.path !== path),
     })),
   setIsLoading: (loading: boolean) => set({ isLoading: loading }),
+  setIsLoadingSession: (loading: boolean) => set({ isLoadingSession: loading }),
   addMessage: (message: Message) =>
     set((state) => ({
       currentMessages: [...state.currentMessages, message],

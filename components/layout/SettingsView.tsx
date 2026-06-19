@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { MODELS as AVAILABLE_MODELS } from "@/lib/models";
@@ -147,6 +147,8 @@ function ProfileSection() {
   const [tz, setTz] = useState("(GMT+05:30) Asia/Kolkata");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const isSavingRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/user/profile")
@@ -163,13 +165,19 @@ function ProfileSection() {
   }, []);
 
   const handleSave = async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+    setSaveError("");
     setSaving(true);
-    await fetch("/api/user/profile", {
+    const res = await fetch("/api/user/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, bio, language: lang, timezone: tz }),
     });
+    const data = await parseJsonResponse<{ error?: string }>(res);
     setSaving(false);
+    isSavingRef.current = false;
+    if (!res.ok) { setSaveError(data?.error ?? "Failed to save profile"); return; }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -232,6 +240,7 @@ function ProfileSection() {
           </select>
         </Field>
 
+        {saveError && <p className="mb-3 text-xs text-red-500">{saveError}</p>}
         <SaveButton saved={saved} loading={saving} onClick={handleSave} />
       </Card>
 
@@ -507,6 +516,8 @@ function PreferencesSection() {
   const [highlight, setHighlight] = useState(true);
   const [saved, setSaved]       = useState(false);
   const [saving, setSaving]     = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const isSavingRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/user/preferences")
@@ -524,14 +535,19 @@ function PreferencesSection() {
   }, []);
 
   const handleSave = async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+    setSaveError("");
     setSaving(true);
     const res = await fetch("/api/user/preferences", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ defaultModel: model, defaultMode: mode, sendOnEnter: enter, codeHighlighting: highlight }),
     });
+    const data = await parseJsonResponse<{ error?: string }>(res);
     setSaving(false);
-    if (!res.ok) return;
+    isSavingRef.current = false;
+    if (!res.ok) { setSaveError(data?.error ?? "Failed to save preferences"); return; }
     setChatMode(mode as "chat" | "agent");
     setChatSendOnEnter(enter);
     setChatCodeHighlighting(highlight);
@@ -585,6 +601,7 @@ function PreferencesSection() {
         />
       </div>
 
+      {saveError && <p className="mb-3 text-xs text-red-500">{saveError}</p>}
       <SaveButton saved={saved} loading={saving} onClick={handleSave} />
     </Card>
   );
@@ -683,6 +700,8 @@ function DataPrivacySection() {
   const [retention, setRetention]       = useState(90);
   const [saved, setSaved]               = useState(false);
   const [saving, setSaving]             = useState(false);
+  const [saveError, setSaveError]       = useState("");
+  const isSavingRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/user/data-privacy")
@@ -697,13 +716,19 @@ function DataPrivacySection() {
   }, []);
 
   const handleSave = async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+    setSaveError("");
     setSaving(true);
-    await fetch("/api/user/data-privacy", {
+    const res = await fetch("/api/user/data-privacy", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ saveHistory, analyticsEnabled: analytics, dataRetentionDays: retention }),
     });
+    const data = await parseJsonResponse<{ error?: string }>(res);
     setSaving(false);
+    isSavingRef.current = false;
+    if (!res.ok) { setSaveError(data?.error ?? "Failed to save privacy settings"); return; }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -744,6 +769,7 @@ function DataPrivacySection() {
           </select>
         </Field>
 
+        {saveError && <p className="mb-3 text-xs text-red-500">{saveError}</p>}
         <SaveButton saved={saved} loading={saving} onClick={handleSave} />
       </Card>
 
