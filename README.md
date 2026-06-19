@@ -1,16 +1,3 @@
-<p align="center">
-  <img src="https://github.com/vaibhavraghuvanshi/devagent/blob/f9c2d38411de7bc38e02ce6194837520bb48cdeb/screenshots/login.png" alt="Login" width="100%" />
-</p>
-<p align="center">
-  <img src="./screenshots/landing-screen.png" alt="Landing Screen" width="100%" />
-</p>
-<p align="center">
-  <img src="./screenshots/agent-screen.png" alt="Agent Screen" width="100%" />
-</p>
-<p align="center">
-  <img src="./screenshots/templates-screen.png" alt="Template Screen" width="100%" />
-</p>
-
 # DevAgent
 
 An AI chat assistant built with Next.js, Prisma, and NextAuth. Supports persistent chat history, streaming agent tool execution, share links, and fully persisted per-user settings across 10 settings sections.
@@ -222,4 +209,17 @@ User ──┬── UserProfile
 - **Prisma engine lock on Windows** — if `prisma generate` fails with EPERM, stop all running Next.js / Node processes (they hold the DLL), then re-run `npm run prisma:generate`.
 - **JWT strategy** — sessions are stored in browser cookies only; the `Session` table is unused. If you reset the database, any existing browser JWTs will carry a stale user ID. Sign out and back in, or run `npx prisma db seed` to restore the dev user.
 - **OAuth providers** — set `GITHUB_ID` / `GITHUB_SECRET` or `GOOGLE_ID` / `GOOGLE_SECRET` to enable the respective OAuth buttons on the login page. Omitting both env vars hides the buttons automatically.
+
+<p align="center">
+  <img src="https://github.com/vaibhavraghuvanshi/devagent/blob/f9c2d38411de7bc38e02ce6194837520bb48cdeb/screenshots/login.png" alt="Login" width="100%" />
+</p>
+<p align="center">
+  <img src="./screenshots/landing-screen.png" alt="Landing Screen" width="100%" />
+</p>
+<p align="center">
+  <img src="./screenshots/agent-screen.png" alt="Agent Screen" width="100%" />
+</p>
+<p align="center">
+  <img src="./screenshots/templates-screen.png" alt="Template Screen" width="100%" />
+</p>
 - **Agent tools** — tool execution is sandboxed by a 30 s timeout (`withToolTimeout`). Add or remove tools in `lib/agent-tools.ts` and update the tool definitions array in `lib/prompts/`.
