@@ -27,6 +27,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   chatSessions  ChatSession[]
+  sharedChats   SharedChat[]
   profile       UserProfile?
   preferences   UserPreferences?
   appearance    UserAppearance?
@@ -203,6 +204,7 @@ model ChatSession {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages     ChatMessage[]
   contextFiles ContextFile[]
+  sharedChats  SharedChat[]
 
   @@index([userId, updatedAt])
 }
@@ -244,4 +246,17 @@ model ContextFile {
   chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
 
   @@unique([chatSessionId, path])
+}
+
+model SharedChat {
+  id            String      @id @default(cuid())
+  shareToken    String      @unique
+  chatSessionId String
+  userId        String
+  createdAt     DateTime    @default(now())
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([chatSessionId])
 }

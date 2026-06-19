@@ -81,3 +81,9 @@ npm run dev
 
 - Prisma client is auto-generated on install (`postinstall`).
 - If Prisma engine file lock appears on Windows during generate, close running Node/Next processes and regenerate.
+
+
+<!-- Dev user ready
+   Email   : dev@devagent.local
+   Password: DevAgent@123
+   User ID : cmqkqj707000011hybfaz6ycn  -->

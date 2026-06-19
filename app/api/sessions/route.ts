@@ -9,6 +9,17 @@ export async function GET(): Promise<Response> {
   }
 
   try {
+    // Verify the JWT user ID still exists in the database.
+    // If not, the JWT is stale (DB was reset or user was recreated) and
+    // the client should sign out to obtain a fresh token.
+    const userExists = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    });
+    if (!userExists) {
+      return NextResponse.json({ error: "Session expired. Please sign in again.", staleToken: true }, { status: 401 });
+    }
+
     const rows = await db.chatSession.findMany({
       where: { userId: session.user.id },
       orderBy: { updatedAt: "desc" },

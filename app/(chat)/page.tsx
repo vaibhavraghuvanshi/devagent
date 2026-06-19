@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -87,6 +87,14 @@ function ChatPageContent() {
           }
 
           if (!sessionsRes.ok) {
+            // 401 with staleToken means the JWT carries a user ID that no longer
+            // exists in the DB (e.g. after prisma db push reset the database).
+            // Force sign-out so the user gets a fresh token on next login.
+            const errData = await sessionsRes.json().catch(() => ({})) as { staleToken?: boolean };
+            if (sessionsRes.status === 401 && errData.staleToken) {
+              await signOut({ callbackUrl: "/login" });
+              return;
+            }
             setInitError("Failed to load sessions. Please refresh the page.");
             setInitialized(true);
             return;
@@ -132,9 +140,18 @@ function ChatPageContent() {
     setIsLoadingSession(true);
     (async () => {
       const res = await fetch(`/api/sessions/${currentSessionId}/messages`);
-      const data = (await res.json()) as { messages?: unknown };
+      const data = (await res.json()) as { messages?: unknown; nextCursor?: string | null; notFound?: boolean };
       if (cancelled) return;
-      if (!res.ok || !Array.isArray(data.messages)) {
+
+      // notFound = session doesn't exist for this user (stale client state)
+      if (!res.ok || (data as { notFound?: boolean }).notFound) {
+        setSessions(useChatStore.getState().sessions.filter((s) => s.id !== currentSessionId));
+        setCurrentSessionId(null);
+        setCurrentMessages([]);
+        setIsLoadingSession(false);
+        return;
+      }
+      if (!Array.isArray(data.messages)) {
         setIsLoadingSession(false);
         return;
       }
@@ -146,7 +163,7 @@ function ChatPageContent() {
       cancelled = true;
       setIsLoadingSession(false);
     };
-  }, [currentSessionId, initialized, status, setCurrentMessages, setIsLoadingSession]);
+  }, [currentSessionId, initialized, status, setCurrentMessages, setIsLoadingSession, setSessions, setCurrentSessionId]);
 
   if (status === "loading" || (status === "authenticated" && !initialized)) {
     return (

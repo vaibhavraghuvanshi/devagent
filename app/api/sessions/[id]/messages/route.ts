@@ -23,7 +23,9 @@ export async function GET(
       select: { id: true },
     });
     if (!chatSession) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      // Return 200 with a notFound flag so the client can prune the stale
+      // session without a red 404 entry appearing in the network tab.
+      return NextResponse.json({ messages: [], nextCursor: null, notFound: true });
     }
 
     const rows = await db.chatMessage.findMany({
